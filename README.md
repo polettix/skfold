@@ -1,5 +1,6 @@
 Easily mint up pretty much every new project, based on templates.
 
+
 # COPYRIGHT & LICENSE
 
 The contents of this repository are licensed according to the Apache
@@ -18,3 +19,5 @@ License 2.0 (see file `LICENSE` in the project's root directory):
 >  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 >  See the License for the specific language governing permissions and
 >  limitations under the License.
+>
+>  Dedicated to the loving memory of my mother.
