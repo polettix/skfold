@@ -36,7 +36,8 @@
          "getopt": "template|t=s"
       },
       {
-         "getopt": "templates|T!"
+         "getopt": "templates|T!",
+         "meta": true
       },
       {
          "getopt": "version|v=s",
