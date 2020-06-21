@@ -96,8 +96,8 @@ Available modules:
 - The `$config->{'target-dir'}` is created and set as the base for the
   newly minted project
 
-- The structure of the target directory is described inside key
-  `skeleton`. This is an *array of hashes*, containing:
+- The structure of the target directory is described inside key `files`.
+  This is an *array of hashes*, containing:
 
     - `source`: (optional) a [Template::Perlish][] template in the
       `templates/` directory. If missing, the destination represents
