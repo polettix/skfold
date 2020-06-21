@@ -224,7 +224,11 @@ actions:
       args: [{path_cache: 'perl-app'}, *appdir]
       commit:
          author: *author
-         entrypoint: [ "/suexec", "-r", *workdir, "--",
+         entrypoint: [ "/suexec",
+                           "-r", *workdir,
+                           '-u', *username,
+                           '-g', *groupname,
+                           "--",
                        "/profilexec", *apppath ]
          cmd: [ ]
          workdir: *workdir

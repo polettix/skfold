@@ -29,9 +29,6 @@ LOGLEVEL($overall->{loglevel});
 my $base_dir = path($overall->{base});
 LOGDIE "invalid base directory $overall->{base}" unless $base_dir->is_dir;
 
-my $default_dir = default_dir($base_dir);
-my $defaults = decode_json($default_dir->child('defaults.json')->slurp_utf8);
-
 my $config = get_module_configuration($overall);
 
 load_custom_module($config->{module_dir});
@@ -51,10 +48,12 @@ INFO 'generating targets:';
 my $target_dir = path($config->{target_dir});
 my $count = 0;
 for my $spec (@{$config->{files}}) {
-   my $destination = $target_dir->child($spec->{destination});
-   if ($destination->exists) {
-      next if $destination->is_dir;
-      LOGDIE "refusing to overwrite already existing file '$destination'";
+   if ($spec->{destination} ne '-') {
+      my $destination = $target_dir->child($spec->{destination});
+      if ($destination->exists) {
+         next if $destination->is_dir;
+         LOGDIE "refusing to overwrite already existing file '$destination'";
+      }
    }
    INFO "- $spec->{destination}";
    SKFold::Custom::create_file($config, $spec);
@@ -124,22 +123,28 @@ sub create_file {
    my ($config, $spec) = @_;
    my $target_dir = path($config->{target_dir});
 
-   my $destination = $target_dir->child($spec->{destination})->realpath;
-   LOGDIE "destination '$spec->{destination}' falls outside project"
-      unless $target_dir->subsumes($destination);
+   my $destination;
+   if ($spec->{destination} ne '-') {
+      $destination = $target_dir->child($spec->{destination})->realpath;
+      LOGDIE "destination '$spec->{destination}' falls outside project"
+         unless $target_dir->subsumes($destination);
+   }
 
    my $created = 0;
    if (defined $spec->{source}) {
-      my $template = $config->{templates_dir}->child($spec->{source})->slurp_raw;
-      my $expanded = Template::Perlish::render($template,
-         {
-            %{$config->{opts}},
-            %{$spec->{opts} || {}}, # overriding stuff
-            _config => $config,
-         }
-      );
-      $destination->spew_raw($expanded);
-      $created = 1;
+      my $expanded = expand_source($config, $spec);
+
+      if ($destination) {
+         $destination->spew_raw($expanded);
+         $created = 1;
+      }
+      else {
+         binmode STDOUT, ':raw';
+         print {*STDOUT} $expanded;
+      }
+   }
+   elsif (! $destination) {
+      LOGDIE 'invalid - no destination and no source...';
    }
    elsif (! $destination->exists) {
       $destination->mkpath;
@@ -150,6 +155,24 @@ sub create_file {
 
    return;
 }
+
+sub expand_source {
+   my ($config, $spec) = @_;
+   my $source = $spec->{source};
+   return $source->($config, $spec) if ref $source eq 'CODE';
+
+   my $template_file = $config->{templates_dir}->child($spec->{source});
+   LOGDIE "template file does not exist '$template_file'"
+      unless $template_file->exists;
+   return Template::Perlish::render($template_file->slurp_raw,
+      {
+         %{$config->{opts}},
+         %{$spec->{opts} || {}}, # overriding stuff
+         _config => $config,
+      }
+   );
+}
+
 
 sub ancestors_for {
    my @retval;
@@ -176,6 +199,8 @@ sub get_module_configuration {
    GetOptionsFromArray(\@args, \%opts,
       map {$_->{getopt}} @{$config->{options}}
    ) or LOGDIE "invalid command line for module '$module'";
+
+   my $defaults = load_defaults($overall, $module);
 
    # Add defaults for exposed options and check mandatory options
    for my $option_spec (@{$config->{options}}) {
@@ -215,13 +240,16 @@ sub get_module_configuration {
    return $config;
 }
 
-
-sub default_dir {
-   my $default_dir = shift;
-   $default_dir->mkpath unless -d $default_dir;
-   my $defaults_file = $default_dir->child('defaults.json');
-   $defaults_file->spew('{}') unless -e $defaults_file;
-   return $default_dir;
+sub load_defaults {
+   my ($overall, $module) = @_;
+   my $defaults_file = path($overall->{base})->child('defaults.json');
+   my $defaults = {};
+   $defaults = decode_json($defaults_file->slurp_utf8)
+      if $defaults_file->exists;
+   return {
+      %{$defaults->{''} || {}},
+      %{$defaults->{$module} || {}},
+   };
 }
 
 sub module_help {
@@ -236,7 +264,7 @@ sub get_overall_options {
    my @args = @_;
    my %config = (
       base => $ENV{SKFOLD_HOME} || "$ENV{HOME}/.skfold",
-      loglevel => 'INFO',
+      loglevel => 'WARN',
    );
    GetOptionsFromArray(\@args, \%config,
       qw<
@@ -245,6 +273,7 @@ sub get_overall_options {
          base|b=s
          help_on|help-on|h=s
          loglevel|l=s
+         quiet|q!
       >
    ) or _pod2usage(-exitval => 1);
    _pod2usage(-message => $VERSION, -sections => ' ') if $config{version};
@@ -252,6 +281,7 @@ sub get_overall_options {
    _pod2usage(-sections => 'USAGE|EXAMPLES|OPTIONS') if $config{help};
    _pod2usage(-verbose => 2) if $config{man};
    $config{args} = \@args;
+   $config{loglevel} = 'OFF' if $config{quiet};
    return \%config;
 }
 
