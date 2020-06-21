@@ -202,9 +202,11 @@ sub get_module_configuration {
 
    my $defaults = load_defaults($overall, $module);
 
-   # Add defaults for exposed options and check mandatory options
+   # Add defaults for exposed options
+   my ($has_meta, %is_missing);
    for my $option_spec (@{$config->{options}}) {
       (my $name = $option_spec->{getopt}) =~ s{\W.*}{}mxs;
+      $has_meta = 1 if $option_spec->{meta} && $opts{$name};
       next if exists $opts{$name};
       if (defined $option_spec->{default}) {
          $opts{$name} = $option_spec->{default};
@@ -217,8 +219,15 @@ sub get_module_configuration {
             $opts{$name}, $config,
          );
       }
-      LOGDIE "undefined value for mandatory option '$name'"
+      $is_missing{$name} = 1
          if $option_spec->{mandatory} && ! defined $opts{$name};
+   }
+
+   if (!$has_meta && scalar(my @missing = sort keys %is_missing)) {
+      my $list = scalar @missing > 1
+         ? ("options ('" . join("', '", @missing) . "')")
+         : "option '$missing[0]'";
+      LOGDIE "undefined value for mandatory $list";
    }
 
    # add other missing defaults
