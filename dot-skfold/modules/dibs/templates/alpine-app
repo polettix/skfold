@@ -1,0 +1,141 @@
+---[%
+{
+   my $V = V('');
+
+   # adjust the version
+   my ($version_maj, $version_min, $version_patch) =
+      split m{\.}mxs, $V->{version} || '0.1.0';
+   $V->{version_maj} = $version_maj     || 0;
+   $V->{version_min} = $version_min     || 1;
+   $V->{version_patch} = $version_patch || 0;
+
+   # adjust the abstract, if any
+   (my $abstract, $V->{abstract}) = ($V->{abstract}, '');
+   if (defined $abstract) {
+      ($V->{abstract} = $abstract) =~ s{^}{# }gmxs;
+      $V->{abstract} =~ s{[\n]*\z}{\n\n}mxs;
+   }
+   delete $V->{registry} if defined $V->{registry} && $V->{registry} !~ m{\S}mxs;
+
+   $V->{image_name} = $V->{name} unless defined $V->{image_name};
+}
+%]
+[% abstract %]name: [% image_name %]
+logger: ['Stderr', 'log_level', 'info']
+
+variables:
+   - &image_name       '[% image_name %]'[%
+   if (defined $V->{registry}) { %]
+   - &registry         '[% registry      %]'
+   - &full_image_name  ['join', '/', *registry, *image_name]
+[% } else { %]
+   - &full_image_name  *image_name
+[% } %]
+   - &version_major   [% version_maj   %]
+   - &version_minor   [% version_min   %]
+   - &version_patch   [% version_patch %]
+   - &version         ['join', '.', *version_major, *version_minor, *version_patch]
+   - &version_maj_min ['join', '.', *version_major, *version_minor]
+   - &author '[% author %] ([% email %])'
+
+   - &base_image          '[% base %]' 
+
+   - unexpanded:
+      tags: &version_tags ['*', 'latest', *version_maj_min, *version]
+
+   - &username             'urist'
+   - &groupname            'urist'
+
+   - &appdir   '/app'
+   - &appname  '[% name %]'
+   - &apppath  ['join', '/', *appdir, *appname]
+   - &workdir  '/mnt'
+
+packs:
+   basic:
+      type:   git
+      origin: https://github.com/polettix/dibspack-basic.git
+
+actions:
+   default:
+      type: log
+      message: |
+         Hello!
+
+         Create a directory 'pack' and file 'pack/create.sh' with everything you
+         need to get your image started. No build/bundle phases, one shot only!
+         Easy for prototyping, but no cache at all... use with brains.
+
+         To build the image, just run (possibly with -A and/or -D):
+
+         $ dibs build
+
+         Remember! Either change the entrypoint, or ensure to install:
+         
+         - su-exec (Alpine Docker package, YMMV with other distros)
+         - suexec (https://github.com/polettix/dibspack-basic/blob/master/wrapexec/suexec)
+         
+   build:
+      - from: *base_image
+      - add-normal-user
+      - add-prerequisites
+      - main-business-logic
+      - name: do everything
+        user: root
+        pack: 'project:create.sh'
+        args:
+         - *username
+         - *groupname
+         - *appname
+         - *appdir
+         - *workdir
+         - *version
+        commit:
+           entrypoint: ['/suexec',
+                           '-r', *workdir, '-u', *username, '-g', *username, '--']
+           cmd:        ['/bin/sh', '-l']
+           # cmd:        [*apppath]
+           user:       root
+           workdir:    *workdir
+      - name: save image
+        image_name: *full_image_name
+        tags: *version_tags
+
+   add-normal-user:
+      name: add a regular, unprivileged user
+      pack: basic
+      user: root
+      path: wrapexec/suexec
+      args: ['-u', *username, '-g', *groupname, '-h', *appdir]
+
+   add-prerequisites:
+      name: add pre-requisite packages for Alpine
+      pack: basic
+      user: root
+      path: package/apk
+      args:
+         - --suexec
+         - --profilexec
+         # add other packages, one per array item
+
+   main-creation-logic:
+      - name: do everything
+        user: root
+        pack: 'project:create.sh'
+        args:
+         - *username
+         - *groupname
+         - *appname
+         - *appdir
+         - *workdir
+         - *version
+        commit:
+           author: [% author %]
+           entrypoint: [
+               '/suexec',
+                  '-r', *workdir, '-u', *username, '-g', *username, '--'
+               '/profilexec'   
+            ]
+           cmd:        [*apppath]
+           user:       root
+           workdir:    *workdir
