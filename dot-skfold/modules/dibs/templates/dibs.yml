@@ -1,0 +1,235 @@
+---[%
+{
+   my $V = V('');
+
+   # adjust the version
+   my ($version_maj, $version_min, $version_patch) =
+      split m{\.}mxs, $V->{version} || '0.1.0';
+   $V->{version_maj} = $version_maj     || 0;
+   $V->{version_min} = $version_min     || 1;
+   $V->{version_patch} = $version_patch || 0;
+
+   # adjust the abstract, if any
+   (my $abstract, $V->{abstract}) = ($V->{abstract}, '');
+   if (defined $abstract) {
+      ($V->{abstract} = $abstract) =~ s{^}{# }gmxs;
+      $V->{abstract} =~ s{[\n]*\z}{\n\n}mxs;
+   }
+   delete $V->{registry} if defined $V->{registry} && $V->{registry} !~ m{\S}mxs;
+
+   $V->{image_name} = $V->{name} unless defined $V->{image_name};
+}
+%]
+[% abstract %]name: [% image_name %]
+logger: ['Stderr', 'log_level', 'info']
+
+variables:
+   - &image_name       '[% image_name %]'[%
+   if (defined $V->{registry}) { %]
+   - &registry         '[% registry      %]'
+   - &full_image_name  ['join', '/', *registry, *image_name]
+[% } else { %]
+   - &full_image_name  *image_name
+[% } %]
+   - &version_major   [% version_maj   %]
+   - &version_minor   [% version_min   %]
+   - &version_patch   [% version_patch %]
+   - &version         ['join', '.', *version_major, *version_minor, *version_patch]
+   - &version_maj_min ['join', '.', *version_major, *version_minor]
+   - &author '[% author %] ([% email %])'
+
+   - &base_image          '[% base %]' 
+   - &builder_image_name  '[% image_name %]-builder'
+   - &bundler_image_name  '[% image_name %]-bundler'
+   - &bases_reference_tag '[% version_maj %].[% version_min %]'
+   - &builder_image       ['join', ':', *builder_image_name, *bases_reference_tag]
+   - &bundler_image       ['join', ':', *bundler_image_name, *bases_reference_tag]
+
+   - unexpanded:
+      tags: &version_tags ['*', 'latest', *version_maj_min, *version]
+
+   - &username             'urist'
+   - &groupname            'urist'
+
+   - &appdir   '/app'
+   - &appname  '[% name %]'
+   - &apppath  ['join', '/', *appdir, *appname]
+   - &workdir  '/mnt'
+
+   - &build_prereqs_list
+      - build-base
+      - perl
+      - perl-dev
+      # add other modules for the "build" phase
+
+   - &bundle_prereqs_list
+      - --suexec
+      - --profilexec
+      - perl
+
+packs:
+   basic:
+      type:   git
+      origin: https://github.com/polettix/dibspack-basic.git
+
+actions:
+   default: [help]
+
+   help:
+      type: log
+      message: |
+         Hello! This is how to use this file...
+
+         # generate base images - once at the beginning, unless you already
+         # have them...
+         $ dibs bases
+
+         # regular run to generate [% image_name %]
+         $ dibs target
+
+         # "quick" run, additional prerequisites will be ignored
+         $ dibs quick
+
+   ###### Main Sketches, used as entry points
+   bases:
+      - build-base
+      - bundle-base
+
+   target:
+      - build
+      - bundle
+
+   quick:
+      - build-quick
+      - bundle-quick
+
+   # Base images
+   build-base:
+      - from: *base_image
+      - add-normal-user
+      - build-prereqs
+      - name: 'save builder image'
+        image_name: *builder_image_name
+        tags: *version_tags
+
+   bundle-base:
+      - from: *base_image
+      - add-normal-user
+      - bundle-prereqs
+      - name: 'save bundler image'
+        image_name: *bundler_image_name
+        tags: *version_tags
+
+   # Build
+   build-core:
+      - src-in-app
+      - build-perl-modules
+      - cache-application
+
+   build:
+      - from: *builder_image
+      - build-prereqs
+      - build-core
+
+   build-quick:
+      - from: *builder_image
+      - build-core
+
+   # Bundle
+   bundle-core:
+      - install-application
+      - save-bundle
+
+   bundle:
+      - from: *bundler_image
+      - bundle-prereqs
+      - bundle-core
+
+   bundle-quick:
+      - from: *bundler_image
+      - bundle-core
+
+   # Basic Strokes
+   add-normal-user:
+      name: add a regular, unprivileged user
+      pack: basic
+      user: root
+      path: wrapexec/suexec
+      args: ['-u', *username, '-g', *groupname, '-h', *appdir]
+
+   build-prereqs:
+      extends: ensure-prereqs
+      args: *build_prereqs_list
+
+   bundle-prereqs:
+      extends: ensure-prereqs
+      args: *bundle_prereqs_list
+
+   ensure-prereqs:
+      name: install OS-level prerequisites
+      pack: basic
+      user: root
+      path: package/apk
+      commit:
+         author: *author
+         entrypoint: [ ]
+         cmd: [ '/bin/sh', '-l' ]
+         user: root
+         workdir: /root
+
+   src-in-app:
+      name: 'copy source in directory for build'
+      user: root
+      pack:
+         run: |
+            #!/bin/sh
+            exec >&2
+            username="${1:-"user"}"
+            groupname="${2:-"user"}"
+            app_dir="${3:-"/app"}"
+            src_dir="$(cat DIBS_DIR_SRC)"
+            rm -rf "$app_dir"
+            cp -a "$src_dir" "$app_dir"
+            rm -rf "$app_dir/local"
+            mkdir -p "$app_dir/.profile.d"
+            cat >"$app_dir/.profile" <<'END'
+            #!/bin/sh
+            for f in "$HOME/.profile.d"/*.sh ; do
+               . "$f"
+            done
+            END
+            set -x
+            chown -R "$username:$groupname" "$app_dir"
+      args: [*username, *groupname, *appdir]
+
+   build-perl-modules:
+      name: 'build perl modules'
+      pack: basic
+      user: *username
+      path: perl/build
+      args: ['-w', *appdir, '-V', *version]
+
+   cache-application:
+      name: 'copy build application in cache'
+      pack: basic
+      user: root
+      path: install/with-dibsignore
+      args: ['--src', *appdir, '--dst', {path_cache: 'perl-app'}]
+
+   install-application:
+      name: 'install application to target path'
+      pack: basic
+      user: root
+      path: install/plain-copy
+      args: [{path_cache: 'perl-app'}, *appdir]
+      commit:
+         author: *author
+         entrypoint: [ "/suexec", "-r", *workdir, "--",
+                       "/profilexec", *apppath ]
+         cmd: [ ]
+         workdir: *workdir
+
+   save-bundle:
+      name: 'save bundle image'
+      image_name: *full_image_name
+      tags: *version_tags

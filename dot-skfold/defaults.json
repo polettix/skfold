@@ -1,0 +1,6 @@
+{
+   "abstract": "[Put something meaningful here!]",
+   "author": "Flavio Poletti",
+   "email": "flavio@polettix.it",
+   "year": "[%= (localtime)[5] + 1900 %]"
+}

@@ -1,0 +1,53 @@
+{
+   "single-file": true,
+   "git-init": false,
+   "options": [
+      {
+         "getopt": "abstract|A=s",
+         "mandatory": false
+      },
+      {
+         "getopt": "author|a=s",
+         "mandatory": true
+      },
+      {
+         "getopt": "base|b=s",
+         "default": "alpine:3.11",
+         "mandatory": false
+      },
+      {
+         "getopt": "email|e=s",
+         "mandatory": true
+      },
+      {
+         "getopt": "image_name|i=s",
+         "mandatory": false
+      },
+      {
+         "getopt": "name|n=s",
+         "mandatory": true
+      },
+      {
+         "getopt": "registry|r=s",
+         "default": "registry.gitlab.com",
+         "mandatory": false
+      },
+      {
+         "getopt": "version|v=s",
+         "default": "0.1",
+         "mandatory": false
+      },
+      {
+         "getopt": "year|y=i",
+         "default": "[%= (localtime)[5] + 1900 %]",
+         "mandatory": true
+      }
+   ],
+   "files": [
+      {
+         "source": "dibs.yml",
+         "destination": "*",
+         "mode": "a=r,u+w"
+      }
+   ]
+}

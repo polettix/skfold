@@ -1,0 +1,47 @@
+{
+   "options": [
+      {
+         "mandatory": true,
+         "getopt": "abstract|A=s"
+      },
+      {
+         "mandatory": true,
+         "getopt": "author|a=s"
+      },
+      {
+         "mandatory": true,
+         "getopt": "email|e=s"
+      },
+      {
+         "mandatory": false,
+         "getopt": "version|v=s",
+         "default": "0.1"
+      },
+      {
+         "mandatory": true,
+         "getopt": "year|y=i",
+         "default": "[%= (localtime)[5] + 1900 %]"
+      }
+   ],
+   "files": [
+      {
+         "source": "LICENSE",
+         "destination": "LICENSE"
+      },
+      {
+         "source": "README.md",
+         "destination": "README.md"
+      },
+      {
+         "source": "gitignore",
+         "destination": ".gitignore"
+      },
+      {
+         "source": "module.pm",
+         "destination": "*",
+         "mode": "a=r,u+w",
+         "dmode": "a=rx,u+w"
+      }
+   ],
+   "git-init": true
+}
