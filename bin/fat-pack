@@ -1,0 +1,15 @@
+#!/bin/sh
+me="$(readlink -f "$0")"
+md="$(dirname "$me")"
+export PERL5LIB="$(readlink -f "$md/../local/lib/perl5")"
+fp="$md/../local/bin/fatpack"
+
+"$fp" file "$md/skf" > "$md/../skf" $(
+   "$fp" tree $(
+      "$fp" packlists-for $(
+         "$fp" trace --to=- "$md/skf"
+      )
+   )
+)
+chmod +x "$md/../skf"
+rm -rf "$md/../fatlib"
