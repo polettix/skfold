@@ -4777,15 +4777,17 @@ unshift @INC, bless \%fatpacked, $class;
 
 use strict;
 use warnings;
-use Getopt::Long qw< GetOptionsFromArray :config gnu_compat bundling require_order no_getopt_compat >;
+use Getopt::Long
+  qw< GetOptionsFromArray :config gnu_compat bundling require_order no_getopt_compat >;
 use Pod::Usage 'pod2usage';
 use JSON::PP 'decode_json';
-my $VERSION = '0.1.0';
 
 use Log::Log4perl::Tiny qw< :easy :no_extra_logdie_message LOGLEVEL >;
 use Path::Tiny 'path';
 use Template::Perlish ();
 use Data::Dumper;
+
+my $VERSION = '0.1.0';
 
 Log::Log4perl->easy_init(
    {
@@ -4797,7 +4799,7 @@ Log::Log4perl->easy_init(
 
 my $overall = get_overall_options(@ARGV);
 module_help($overall->{args}[0]) if $overall->{help_on};
-_pod2usage() unless scalar @{$overall->{args}};
+list_modules($overall) unless scalar @{$overall->{args}};
 
 LOGLEVEL($overall->{loglevel});
 
@@ -4812,7 +4814,7 @@ INFO "applying module configuration adaptations";
 SKFold::Custom::adapt_module_configuration($config);
 
 if ($config->{'single-file'}) {
-   $config->{'git-init'} = 0; # disable anyway
+   $config->{'git-init'} = 0;    # disable anyway
 }
 else {
    my $target_dir = create_target_dir($config->{target_dir})->absolute;
@@ -4821,19 +4823,20 @@ else {
 
 INFO 'generating targets:';
 my $target_dir = path($config->{target_dir});
-my $count = 0;
+my $count      = 0;
 for my $spec (@{$config->{files}}) {
    if ($spec->{destination} ne '-') {
       my $destination = $target_dir->child($spec->{destination});
       if ($destination->exists) {
          next if $destination->is_dir;
-         LOGDIE "refusing to overwrite already existing file '$destination'";
+         LOGDIE
+           "refusing to overwrite already existing file '$destination'";
       }
-   }
+   } ## end if ($spec->{destination...})
    INFO "- $spec->{destination}";
    SKFold::Custom::create_file($config, $spec);
    ++$count;
-}
+} ## end for my $spec (@{$config...})
 
 bootstrap_git($config) if $config->{'git-init'};
 
@@ -4849,7 +4852,7 @@ else {
 
 sub bootstrap_git {
    my $config = shift;
-   my $cwd = Path::Tiny->cwd;
+   my $cwd    = Path::Tiny->cwd;
    chdir $config->{target_dir};
    system {'/bin/sh'} qw< /bin/sh -c >, <<'END';
 git init &&
@@ -4859,19 +4862,19 @@ git commit -m 'Initial import'
 END
    chdir $cwd;
    return;
-}
+} ## end sub bootstrap_git
 
 sub create_target_dir {
    my $target_dir_name = shift;
-   my $target_dir = path($target_dir_name);
+   my $target_dir      = path($target_dir_name);
    LOGDIE "target directory '$target_dir_name' already exists"
-      if $target_dir->exists;
+     if $target_dir->exists;
    $target_dir->mkpath;
    $target_dir = $target_dir->realpath;
-}
+} ## end sub create_target_dir
 
 sub load_custom_module {
-   my $dir = shift;
+   my $dir              = shift;
    my $perl_module_file = $dir->child('custom.pm');
    if (-e $perl_module_file) {
       INFO "loading custom Perl module from '$perl_module_file'";
@@ -4879,12 +4882,12 @@ sub load_custom_module {
    }
 
    DEBUG 'ensuring all functions in SKFold::Custom are present';
-   may_set_custom_module_sub(adapt_module_configuration => sub {});
-   may_set_custom_module_sub(post_operations => sub {});
+   may_set_custom_module_sub(adapt_module_configuration => sub { });
+   may_set_custom_module_sub(post_operations            => sub { });
    may_set_custom_module_sub($_) for qw< create_file ancestors_for path >;
 
    return;
-}
+} ## end sub load_custom_module
 
 sub may_set_custom_module_sub {
    my ($name, $sub) = @_;
@@ -4892,7 +4895,7 @@ sub may_set_custom_module_sub {
    no strict 'refs';
    return if defined &$fullname;
    *{$fullname} = $sub || \&{"main::$name"};
-}
+} ## end sub may_set_custom_module_sub
 
 sub create_file {
    my ($config, $spec) = @_;
@@ -4902,7 +4905,7 @@ sub create_file {
    if ($spec->{destination} ne '-') {
       $destination = $target_dir->child($spec->{destination})->realpath;
       LOGDIE "destination '$spec->{destination}' falls outside project"
-         unless $target_dir->subsumes($destination);
+        unless $target_dir->subsumes($destination);
    }
 
    my $created = 0;
@@ -4917,11 +4920,11 @@ sub create_file {
          binmode STDOUT, ':raw';
          print {*STDOUT} $expanded;
       }
-   }
-   elsif (! $destination) {
+   } ## end if (defined $spec->{source...})
+   elsif (!$destination) {
       LOGDIE 'invalid - no destination and no source...';
    }
-   elsif (! $destination->exists) {
+   elsif (!$destination->exists) {
       $destination->mkpath;
       $created = 1;
    }
@@ -4929,7 +4932,7 @@ sub create_file {
    $destination->chmod($spec->{mode}) if $created && defined $spec->{mode};
 
    return;
-}
+} ## end sub create_file
 
 sub expand_source {
    my ($config, $spec) = @_;
@@ -4938,16 +4941,16 @@ sub expand_source {
 
    my $template_file = $config->{templates_dir}->child($spec->{source});
    LOGDIE "template file does not exist '$template_file'"
-      unless $template_file->exists;
-   return Template::Perlish::render($template_file->slurp_raw,
+     unless $template_file->exists;
+   return Template::Perlish::render(
+      $template_file->slurp_raw,
       {
          %{$config->{opts}},
-         %{$spec->{opts} || {}}, # overriding stuff
+         %{$spec->{opts} || {}},    # overriding stuff
          _config => $config,
       }
    );
-}
-
+} ## end sub expand_source
 
 sub ancestors_for {
    my @retval;
@@ -4958,13 +4961,15 @@ sub ancestors_for {
       $dir = $dir->parent;
    }
    return @retval;
-}
+} ## end sub ancestors_for
 
 sub get_module_configuration {
    my $overall = shift;
 
    my ($target, $module, @args) = @{$overall->{args}};
    LOGDIE 'no module provided' unless defined $module;
+
+   my $base_dir = path($overall->{base});
    my $module_dir = $base_dir->child(modules => $module);
    LOGDIE "invalid module $module" unless $module_dir->is_dir;
 
@@ -4972,8 +4977,8 @@ sub get_module_configuration {
    my %opts;
 
    GetOptionsFromArray(\@args, \%opts,
-      map {$_->{getopt}} @{$config->{options}}
-   ) or LOGDIE "invalid command line for module '$module'";
+      map { $_->{getopt} } @{$config->{options}})
+     or LOGDIE "invalid command line for module '$module'";
 
    my $defaults = load_defaults($overall, $module);
 
@@ -4990,75 +4995,90 @@ sub get_module_configuration {
          $opts{$name} = $defaults->{$name};
       }
       if (defined $opts{$name}) {
-         $opts{$name} = Template::Perlish::render(
-            $opts{$name}, $config,
-         );
+         $opts{$name} = Template::Perlish::render($opts{$name}, $config,);
       }
       $is_missing{$name} = 1
-         if $option_spec->{mandatory} && ! defined $opts{$name};
-   }
+        if $option_spec->{mandatory} && !defined $opts{$name};
+   } ## end for my $option_spec (@{...})
 
    if (!$has_meta && scalar(my @missing = sort keys %is_missing)) {
-      my $list = scalar @missing > 1
-         ? ("options ('" . join("', '", @missing) . "')")
-         : "option '$missing[0]'";
+      my $list =
+        scalar @missing > 1
+        ? ("options ('" . join("', '", @missing) . "')")
+        : "option '$missing[0]'";
       LOGDIE "undefined value for mandatory $list";
-   }
+   } ## end if (!$has_meta && scalar...)
 
    # add other missing defaults
    for my $name (keys %$defaults) {
       next if exists $opts{$name};
-      $opts{$name} = Template::Perlish::render(
-         $defaults->{$name}, $config,
-      );
+      $opts{$name} =
+        Template::Perlish::render($defaults->{$name}, $config,);
    }
 
-   $config->{module} = $module;
-   $config->{module_dir} = $module_dir;
+   $config->{module}        = $module;
+   $config->{module_dir}    = $module_dir;
    $config->{templates_dir} = $module_dir->child('templates');
-   $config->{opts} = \%opts;
-   $config->{args} = \@args;
-   $config->{target} = $config->{target_dir} = $target;
-   $config->{overall} = $overall;
+   $config->{opts}          = \%opts;
+   $config->{args}          = \@args;
+   $config->{target}        = $config->{target_dir} = $target;
+   $config->{overall}       = $overall;
 
    return $config;
-}
+} ## end sub get_module_configuration
 
 sub load_defaults {
    my ($overall, $module) = @_;
    my $defaults_file = path($overall->{base})->child('defaults.json');
-   my $defaults = {};
+   my $defaults      = {};
    $defaults = decode_json($defaults_file->slurp_utf8)
-      if $defaults_file->exists;
-   return {
-      %{$defaults->{''} || {}},
-      %{$defaults->{$module} || {}},
-   };
-}
+     if $defaults_file->exists;
+   return {%{$defaults->{''} || {}}, %{$defaults->{$module} || {}},};
+} ## end sub load_defaults
+
+sub list_modules {
+   my $overall = shift;
+
+   print {*STDERR} "# skf version $VERSION - more info with\n";
+   print {*STDERR} "# skf --usage|--help|--man\n";
+   print {*STDERR} "# Available modules:\n";
+
+   $|++;
+   my $modules_dir = path($overall->{base})->child('modules');
+   for my $candidate ($modules_dir->children) {
+      next
+        unless $candidate->is_dir
+        && $candidate->child('config.json')->exists;
+      print {*STDOUT} $candidate->basename, "\n";
+   } ## end for my $candidate ($modules_dir...)
+
+   exit 0;
+} ## end sub list_modules
 
 sub module_help {
    my $module = shift;
    _pod2usage(-exitval => 1, -message => 'no module name to get help')
-      unless defined $module;
+     unless defined $module;
 
    ...;
-}
+} ## end sub module_help
 
 sub get_overall_options {
-   my @args = @_;
+   my @args   = @_;
    my %config = (
       base => $ENV{SKFOLD_HOME} || "$ENV{HOME}/.skfold",
       loglevel => 'WARN',
    );
-   GetOptionsFromArray(\@args, \%config,
+   GetOptionsFromArray(
+      \@args, \%config,
       qw<
-         help! man! usage! version!
+        help! man! usage! version!
 
-         base|b=s
-         help_on|help-on|h=s
-         loglevel|l=s
-         quiet|q!
-      >
+        base|b=s
+        help_on|help-on|h=s
+        loglevel|l=s
+        quiet|q!
+        >
    ) or _pod2usage(-exitval => 1);
    _pod2usage(-message => $VERSION, -sections => ' ') if $config{version};
    _pod2usage() if $config{usage};
@@ -5067,15 +5087,301 @@ sub get_overall_options {
    $config{args} = \@args;
    $config{loglevel} = 'OFF' if $config{quiet};
    return \%config;
-}
+} ## end sub get_overall_options
 
 sub _pod2usage {
    pod2usage(
-      -exitval => 0,
+      -exitval  => 0,
       -sections => 'USAGE',
-      -verbose => 99,
+      -verbose  => 99,
       @_
    );
-}
+} ## end sub _pod2usage
 
 __END__
+
+
+=encoding utf8
+
+=head1 NAME
+
+skf - Easily mint up pretty much every new project, based on templates.
+
+=head1 VERSION
+
+Ask the version number to the script itself, calling:
+
+   shell$ skf --version
+
+
+=head1 USAGE
+
+   skf [--usage] [--help] [--man] [--version]
+
+   skf --help-on <module>
+   skf -h        <module>
+
+   skf [-b|--base <dir>]
+       [-l|--loglevel <level>]
+       [-q|--quiet]
+       <target> <module> [<module options...>]
+
+=head1 EXAMPLES
+
+   # get a quick help and a list of available modules
+   $ skf
+
+   # get help on a module yadda-yadda (e.g. its options)
+   $ skf -h yadda-yadda
+
+   # invoke skf to generate a Perl distro for module What::Ever
+   # and some sub-modules
+   $ skf What::Ever perl-distro \
+      --abstract 'Whatever!' \
+      --author 'A. U. Thor'  \
+      --email 'foobar@example.com' \
+      What::Ever::This What::Ever::That
+
+   # One-off file on the standard output
+   $ skf - dibs quick-app
+
+
+=head1 DESCRIPTION
+
+skfold aims at enabling to start-up the scaffolding for any kind of
+project, even single one-off files.
+
+=head2 Getting Started
+
+Install C<skf> somewhere in the path.
+
+Place modules in C<~/.skfold/modules> and set defaults in
+C<~/.skfold/defaults.json>. 
+
+Now you're good to go!
+
+
+=head2 List available modules, getting help
+
+To list all available modules, just call C<skf> without parameters
+(possibly only L</-b>/L<--base>):
+
+   $ skf
+   # skf version x.y.z
+   # use   skf --usage   for more info
+
+The I<commented-out> lines are printed on the standard error, the list
+of modules on the standard output.
+
+To get help on a module, use the L</-h>/L</--help-on> option, passing
+the module's name:
+
+   $ skf --help-on perl-distro
+   ...
+
+=head2 Generate a new project from a module
+
+Modules that are aimed at kickstarting a complete project (e.g.
+`perl-distro`) are invoked like this:
+
+   skf <target> <module> [<module options...>]
+
+As an example:
+
+   $ skf What::Ever perl-distro \
+      --abstract 'Whatever!' \
+      --author 'A. U. Thor'  \
+      --email 'foobar@example.com' \
+      What::Ever::This What::Ever::That
+
+generates a directory C<What-Ever> (derived from the I<target>
+C<What::Ever>), creates the configured files and makes sure to create a
+module file for packages C<What::Ever> (the I<target>),
+C<What::Ever::This>, and C<What::Ever::That>.
+
+Each module has its own options... look at its documentation to know
+what is supported.
+
+=head2 Generate a new file from a module
+
+Some modules are geared at producing single files (e.g. the C<dibs>
+module). The invocation is the same as before though:
+
+   $ skf <target> <module> [<module options...>]
+
+only the I<target> usually defines the output filename, and can be set
+to C<-> as a convention to specify printing on the standard output (this
+may vary according to the specific module).
+
+=head1 OPTIONS
+
+
+=head2 Meta-Options
+
+The following I<meta-options> allow getting more info about C<dibs>
+itself:
+
+=over
+
+=item --help
+
+print a somewhat more verbose help, showing usage, this description of
+the options and some examples from the synopsis.
+
+=item --man
+
+print out the full documentation for the script.
+
+=item --usage
+
+print a concise usage line and exit.
+
+=item --version
+
+print the version of the script.
+
+=back
+
+
+=head1 Real Options
+
+The following options are supported by C<dibs> as part of its mission:
+
+=over
+
+=item --base
+
+=item -b
+
+   $ skf -b /path/to/directory ...
+
+set the base directory for the defaults and modules. Defaults to
+C<~/.skfold>.
+
+=item --help-on
+
+=item -h
+
+   $ skf -h perl-distro
+
+Print out the help for the specific module. Does not execute the module.
+
+=item --loglevel
+
+=item -l
+
+   $ skf -l INFO ...
+
+Change the log level. Defaults to C<WARN>, i.e. it does not normally print
+anything, but you can make it more verbose.
+
+=item --quiet
+
+=item -q
+
+Shorthand to disable the logs production (same as setting the log level to
+C<OFF>).
+
+=back
+
+=head1 DIAGNOSTICS
+
+Whatever fails will complain quite loudly.
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+You can use file C<defaults.json> to set the default values for specific
+modules or generically. Example:
+
+   {
+      "": {
+         "abstract": "[Put something meaningful here!]",
+         "author":   "Foo B. Baz",
+         "email":    "foo.b.baz@example.com",
+         "year":     "[%= (localtime)[5] + 1900 %]"
+      },
+      "perl-distro": {
+         "abstract": "[What does this module do?!?]",
+         "version": "0.1.0"
+      }
+   }
+
+The I<empty> group is applied everywhere.
+
+Option L<-b>/L<--base> can also be set through the environment varialbe
+C<SKFOLD_HOME>.
+
+
+=head1 DEPENDENCIES
+
+Only pure-Perl modules (beyond CORE ones):
+
+=over
+
+=item * B<Log::Log4perl::Tiny>
+
+=item * B<Path::Tiny>
+
+=item * B<Template::Perlish>
+
+=back
+
+These three modules are embedded in the I<fatpacked> version.
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests through the repository.
+
+
+=head1 AUTHOR
+
+Flavio Poletti C<polettix@cpan.org>.
+
+Embedded code from the I<fatpacked> modules are by the respective authors.
+
+
+=head1 LICENCE AND COPYRIGHT
+
+Copyright 2020 by Flavio Poletti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+In the I<fatpacked> version, code from the following modules is embedded:
+
+=over
+
+=item *
+
+B<Log::Log4perl::Tiny>, copyrighted by Flavio Poletti under the
+Artistic 2 license. See L<https://metacpan.org/pod/Log::Log4perl::Tiny>.
+
+=item *
+
+B<Path::Tiny>, copyrighted by David Golden under the Apache License,
+Version 2.0. See L<https://metacpan.org/pod/Path::Tiny>.
+
+=item *
+
+B<Template::Perlish>, copyrighted by Flavio Poletti under the Artistic
+2 license. See L<https://metacpan.org/pod/Template::Perlish>.
+
+=back
+
+=head1 DEDICATION
+
+Dedicated to the loving memory of my mother.
+
+
+=cut
