@@ -22,7 +22,7 @@ Log::Log4perl->easy_init(
 
 my $overall = get_overall_options(@ARGV);
 module_help($overall->{args}[0]) if $overall->{help_on};
-_pod2usage() unless scalar @{$overall->{args}};
+list_modules($overall) unless scalar @{$overall->{args}};
 
 LOGLEVEL($overall->{loglevel});
 
@@ -259,6 +259,23 @@ sub load_defaults {
       %{$defaults->{''} || {}},
       %{$defaults->{$module} || {}},
    };
+}
+
+sub list_modules {
+   my $overall = shift;
+
+   print {*STDERR} "# skf version $VERSION - more info with\n";
+   print {*STDERR} "# skf --usage|--help|--man\n";
+   print {*STDERR} "# Available modules:\n";
+
+   $|++;
+   my $modules_dir = path($overall->{base})->child('modules');
+   for my $candidate ($modules_dir->children) {
+      next unless $candidate->is_dir && $candidate->child('config.json')->exists;
+      print {*STDOUT} $candidate->basename, "\n";
+   }
+
+   exit 0;
 }
 
 sub module_help {
