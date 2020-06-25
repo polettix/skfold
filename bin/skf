@@ -1,7 +1,8 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Getopt::Long qw< GetOptionsFromArray :config gnu_compat bundling require_order no_getopt_compat >;
+use Getopt::Long
+  qw< GetOptionsFromArray :config gnu_compat bundling require_order no_getopt_compat >;
 use Pod::Usage 'pod2usage';
 use JSON::PP 'decode_json';
 
@@ -37,7 +38,7 @@ INFO "applying module configuration adaptations";
 SKFold::Custom::adapt_module_configuration($config);
 
 if ($config->{'single-file'}) {
-   $config->{'git-init'} = 0; # disable anyway
+   $config->{'git-init'} = 0;    # disable anyway
 }
 else {
    my $target_dir = create_target_dir($config->{target_dir})->absolute;
@@ -46,19 +47,20 @@ else {
 
 INFO 'generating targets:';
 my $target_dir = path($config->{target_dir});
-my $count = 0;
+my $count      = 0;
 for my $spec (@{$config->{files}}) {
    if ($spec->{destination} ne '-') {
       my $destination = $target_dir->child($spec->{destination});
       if ($destination->exists) {
          next if $destination->is_dir;
-         LOGDIE "refusing to overwrite already existing file '$destination'";
+         LOGDIE
+           "refusing to overwrite already existing file '$destination'";
       }
-   }
+   } ## end if ($spec->{destination...})
    INFO "- $spec->{destination}";
    SKFold::Custom::create_file($config, $spec);
    ++$count;
-}
+} ## end for my $spec (@{$config...})
 
 bootstrap_git($config) if $config->{'git-init'};
 
@@ -74,7 +76,7 @@ else {
 
 sub bootstrap_git {
    my $config = shift;
-   my $cwd = Path::Tiny->cwd;
+   my $cwd    = Path::Tiny->cwd;
    chdir $config->{target_dir};
    system {'/bin/sh'} qw< /bin/sh -c >, <<'END';
 git init &&
@@ -84,19 +86,19 @@ git commit -m 'Initial import'
 END
    chdir $cwd;
    return;
-}
+} ## end sub bootstrap_git
 
 sub create_target_dir {
    my $target_dir_name = shift;
-   my $target_dir = path($target_dir_name);
+   my $target_dir      = path($target_dir_name);
    LOGDIE "target directory '$target_dir_name' already exists"
-      if $target_dir->exists;
+     if $target_dir->exists;
    $target_dir->mkpath;
    $target_dir = $target_dir->realpath;
-}
+} ## end sub create_target_dir
 
 sub load_custom_module {
-   my $dir = shift;
+   my $dir              = shift;
    my $perl_module_file = $dir->child('custom.pm');
    if (-e $perl_module_file) {
       INFO "loading custom Perl module from '$perl_module_file'";
@@ -104,12 +106,12 @@ sub load_custom_module {
    }
 
    DEBUG 'ensuring all functions in SKFold::Custom are present';
-   may_set_custom_module_sub(adapt_module_configuration => sub {});
-   may_set_custom_module_sub(post_operations => sub {});
+   may_set_custom_module_sub(adapt_module_configuration => sub { });
+   may_set_custom_module_sub(post_operations            => sub { });
    may_set_custom_module_sub($_) for qw< create_file ancestors_for path >;
 
    return;
-}
+} ## end sub load_custom_module
 
 sub may_set_custom_module_sub {
    my ($name, $sub) = @_;
@@ -117,7 +119,7 @@ sub may_set_custom_module_sub {
    no strict 'refs';
    return if defined &$fullname;
    *{$fullname} = $sub || \&{"main::$name"};
-}
+} ## end sub may_set_custom_module_sub
 
 sub create_file {
    my ($config, $spec) = @_;
@@ -127,7 +129,7 @@ sub create_file {
    if ($spec->{destination} ne '-') {
       $destination = $target_dir->child($spec->{destination})->realpath;
       LOGDIE "destination '$spec->{destination}' falls outside project"
-         unless $target_dir->subsumes($destination);
+        unless $target_dir->subsumes($destination);
    }
 
    my $created = 0;
@@ -142,11 +144,11 @@ sub create_file {
          binmode STDOUT, ':raw';
          print {*STDOUT} $expanded;
       }
-   }
-   elsif (! $destination) {
+   } ## end if (defined $spec->{source...})
+   elsif (!$destination) {
       LOGDIE 'invalid - no destination and no source...';
    }
-   elsif (! $destination->exists) {
+   elsif (!$destination->exists) {
       $destination->mkpath;
       $created = 1;
    }
@@ -154,7 +156,7 @@ sub create_file {
    $destination->chmod($spec->{mode}) if $created && defined $spec->{mode};
 
    return;
-}
+} ## end sub create_file
 
 sub expand_source {
    my ($config, $spec) = @_;
@@ -163,16 +165,16 @@ sub expand_source {
 
    my $template_file = $config->{templates_dir}->child($spec->{source});
    LOGDIE "template file does not exist '$template_file'"
-      unless $template_file->exists;
-   return Template::Perlish::render($template_file->slurp_raw,
+     unless $template_file->exists;
+   return Template::Perlish::render(
+      $template_file->slurp_raw,
       {
          %{$config->{opts}},
-         %{$spec->{opts} || {}}, # overriding stuff
+         %{$spec->{opts} || {}},    # overriding stuff
          _config => $config,
       }
    );
-}
-
+} ## end sub expand_source
 
 sub ancestors_for {
    my @retval;
@@ -183,7 +185,7 @@ sub ancestors_for {
       $dir = $dir->parent;
    }
    return @retval;
-}
+} ## end sub ancestors_for
 
 sub get_module_configuration {
    my $overall = shift;
@@ -199,8 +201,8 @@ sub get_module_configuration {
    my %opts;
 
    GetOptionsFromArray(\@args, \%opts,
-      map {$_->{getopt}} @{$config->{options}}
-   ) or LOGDIE "invalid command line for module '$module'";
+      map { $_->{getopt} } @{$config->{options}})
+     or LOGDIE "invalid command line for module '$module'";
 
    my $defaults = load_defaults($overall, $module);
 
@@ -217,51 +219,46 @@ sub get_module_configuration {
          $opts{$name} = $defaults->{$name};
       }
       if (defined $opts{$name}) {
-         $opts{$name} = Template::Perlish::render(
-            $opts{$name}, $config,
-         );
+         $opts{$name} = Template::Perlish::render($opts{$name}, $config,);
       }
       $is_missing{$name} = 1
-         if $option_spec->{mandatory} && ! defined $opts{$name};
-   }
+        if $option_spec->{mandatory} && !defined $opts{$name};
+   } ## end for my $option_spec (@{...})
 
    if (!$has_meta && scalar(my @missing = sort keys %is_missing)) {
-      my $list = scalar @missing > 1
-         ? ("options ('" . join("', '", @missing) . "')")
-         : "option '$missing[0]'";
+      my $list =
+        scalar @missing > 1
+        ? ("options ('" . join("', '", @missing) . "')")
+        : "option '$missing[0]'";
       LOGDIE "undefined value for mandatory $list";
-   }
+   } ## end if (!$has_meta && scalar...)
 
    # add other missing defaults
    for my $name (keys %$defaults) {
       next if exists $opts{$name};
-      $opts{$name} = Template::Perlish::render(
-         $defaults->{$name}, $config,
-      );
+      $opts{$name} =
+        Template::Perlish::render($defaults->{$name}, $config,);
    }
 
-   $config->{module} = $module;
-   $config->{module_dir} = $module_dir;
+   $config->{module}        = $module;
+   $config->{module_dir}    = $module_dir;
    $config->{templates_dir} = $module_dir->child('templates');
-   $config->{opts} = \%opts;
-   $config->{args} = \@args;
-   $config->{target} = $config->{target_dir} = $target;
-   $config->{overall} = $overall;
+   $config->{opts}          = \%opts;
+   $config->{args}          = \@args;
+   $config->{target}        = $config->{target_dir} = $target;
+   $config->{overall}       = $overall;
 
    return $config;
-}
+} ## end sub get_module_configuration
 
 sub load_defaults {
    my ($overall, $module) = @_;
    my $defaults_file = path($overall->{base})->child('defaults.json');
-   my $defaults = {};
+   my $defaults      = {};
    $defaults = decode_json($defaults_file->slurp_utf8)
-      if $defaults_file->exists;
-   return {
-      %{$defaults->{''} || {}},
-      %{$defaults->{$module} || {}},
-   };
-}
+     if $defaults_file->exists;
+   return {%{$defaults->{''} || {}}, %{$defaults->{$module} || {}},};
+} ## end sub load_defaults
 
 sub list_modules {
    my $overall = shift;
@@ -273,36 +270,39 @@ sub list_modules {
    $|++;
    my $modules_dir = path($overall->{base})->child('modules');
    for my $candidate ($modules_dir->children) {
-      next unless $candidate->is_dir && $candidate->child('config.json')->exists;
+      next
+        unless $candidate->is_dir
+        && $candidate->child('config.json')->exists;
       print {*STDOUT} $candidate->basename, "\n";
-   }
+   } ## end for my $candidate ($modules_dir...)
 
    exit 0;
-}
+} ## end sub list_modules
 
 sub module_help {
    my $module = shift;
    _pod2usage(-exitval => 1, -message => 'no module name to get help')
-      unless defined $module;
+     unless defined $module;
 
    ...;
-}
+} ## end sub module_help
 
 sub get_overall_options {
-   my @args = @_;
+   my @args   = @_;
    my %config = (
       base => $ENV{SKFOLD_HOME} || "$ENV{HOME}/.skfold",
       loglevel => 'WARN',
    );
-   GetOptionsFromArray(\@args, \%config,
+   GetOptionsFromArray(
+      \@args, \%config,
       qw<
-         help! man! usage! version!
+        help! man! usage! version!
 
-         base|b=s
-         help_on|help-on|h=s
-         loglevel|l=s
-         quiet|q!
-      >
+        base|b=s
+        help_on|help-on|h=s
+        loglevel|l=s
+        quiet|q!
+        >
    ) or _pod2usage(-exitval => 1);
    _pod2usage(-message => $VERSION, -sections => ' ') if $config{version};
    _pod2usage() if $config{usage};
@@ -311,16 +311,16 @@ sub get_overall_options {
    $config{args} = \@args;
    $config{loglevel} = 'OFF' if $config{quiet};
    return \%config;
-}
+} ## end sub get_overall_options
 
 sub _pod2usage {
    pod2usage(
-      -exitval => 0,
+      -exitval  => 0,
       -sections => 'USAGE',
-      -verbose => 99,
+      -verbose  => 99,
       @_
    );
-}
+} ## end sub _pod2usage
 
 __END__
 
