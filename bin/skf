@@ -22,7 +22,7 @@ Log::Log4perl->easy_init(
 );
 
 my $overall = get_overall_options(@ARGV);
-module_help($overall->{args}[0]) if $overall->{help_on};
+module_help($overall->{help_on}) if $overall->{help_on};
 list_modules($overall) unless scalar @{$overall->{args}};
 
 LOGLEVEL($overall->{loglevel});
