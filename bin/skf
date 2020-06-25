@@ -323,3 +323,289 @@ sub _pod2usage {
 }
 
 __END__
+
+
+=encoding utf8
+
+=head1 NAME
+
+skf - Easily mint up pretty much every new project, based on templates.
+
+=head1 VERSION
+
+Ask the version number to the script itself, calling:
+
+   shell$ skf --version
+
+
+=head1 USAGE
+
+   skf [--usage] [--help] [--man] [--version]
+
+   skf --help-on <module>
+   skf -h        <module>
+
+   skf [-b|--base <dir>]
+       [-l|--loglevel <level>]
+       [-q|--quiet]
+       <target> <module> [<module options...>]
+
+=head1 EXAMPLES
+
+   # get a quick help and a list of available modules
+   $ skf
+
+   # get help on a module yadda-yadda (e.g. its options)
+   $ skf -h yadda-yadda
+
+   # invoke skf to generate a Perl distro for module What::Ever
+   # and some sub-modules
+   $ skf What::Ever perl-distro \
+      --abstract 'Whatever!' \
+      --author 'A. U. Thor'  \
+      --email 'foobar@example.com' \
+      What::Ever::This What::Ever::That
+
+   # One-off file on the standard output
+   $ skf - dibs quick-app
+
+
+=head1 DESCRIPTION
+
+skfold aims at enabling to start-up the scaffolding for any kind of
+project, even single one-off files.
+
+=head2 Getting Started
+
+Install C<skf> somewhere in the path.
+
+Place modules in C<~/.skfold/modules> and set defaults in
+C<~/.skfold/defaults.json>. 
+
+Now you're good to go!
+
+
+=head2 List available modules, getting help
+
+To list all available modules, just call C<skf> without parameters
+(possibly only L</-b>/L<--base>):
+
+   $ skf
+   # skf version x.y.z
+   # use   skf --usage   for more info
+
+The I<commented-out> lines are printed on the standard error, the list
+of modules on the standard output.
+
+To get help on a module, use the L</-h>/L</--help-on> option, passing
+the module's name:
+
+   $ skf --help-on perl-distro
+   ...
+
+=head2 Generate a new project from a module
+
+Modules that are aimed at kickstarting a complete project (e.g.
+`perl-distro`) are invoked like this:
+
+   skf <target> <module> [<module options...>]
+
+As an example:
+
+   $ skf What::Ever perl-distro \
+      --abstract 'Whatever!' \
+      --author 'A. U. Thor'  \
+      --email 'foobar@example.com' \
+      What::Ever::This What::Ever::That
+
+generates a directory C<What-Ever> (derived from the I<target>
+C<What::Ever>), creates the configured files and makes sure to create a
+module file for packages C<What::Ever> (the I<target>),
+C<What::Ever::This>, and C<What::Ever::That>.
+
+Each module has its own options... look at its documentation to know
+what is supported.
+
+=head2 Generate a new file from a module
+
+Some modules are geared at producing single files (e.g. the C<dibs>
+module). The invocation is the same as before though:
+
+   $ skf <target> <module> [<module options...>]
+
+only the I<target> usually defines the output filename, and can be set
+to C<-> as a convention to specify printing on the standard output (this
+may vary according to the specific module).
+
+=head1 OPTIONS
+
+
+=head2 Meta-Options
+
+The following I<meta-options> allow getting more info about C<dibs>
+itself:
+
+=over
+
+=item --help
+
+print a somewhat more verbose help, showing usage, this description of
+the options and some examples from the synopsis.
+
+=item --man
+
+print out the full documentation for the script.
+
+=item --usage
+
+print a concise usage line and exit.
+
+=item --version
+
+print the version of the script.
+
+=back
+
+
+=head1 Real Options
+
+The following options are supported by C<dibs> as part of its mission:
+
+=over
+
+=item --base
+
+=item -b
+
+   $ skf -b /path/to/directory ...
+
+set the base directory for the defaults and modules. Defaults to
+C<~/.skfold>.
+
+=item --help-on
+
+=item -h
+
+   $ skf -h perl-distro
+
+Print out the help for the specific module. Does not execute the module.
+
+=item --loglevel
+
+=item -l
+
+   $ skf -l INFO ...
+
+Change the log level. Defaults to C<WARN>, i.e. it does not normally print
+anything, but you can make it more verbose.
+
+=item --quiet
+
+=item -q
+
+Shorthand to disable the logs production (same as setting the log level to
+C<OFF>).
+
+=back
+
+=head1 DIAGNOSTICS
+
+Whatever fails will complain quite loudly.
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+You can use file C<defaults.json> to set the default values for specific
+modules or generically. Example:
+
+   {
+      "": {
+         "abstract": "[Put something meaningful here!]",
+         "author":   "Foo B. Baz",
+         "email":    "foo.b.baz@example.com",
+         "year":     "[%= (localtime)[5] + 1900 %]"
+      },
+      "perl-distro": {
+         "abstract": "[What does this module do?!?]",
+         "version": "0.1.0"
+      }
+   }
+
+The I<empty> group is applied everywhere.
+
+Option L<-b>/L<--base> can also be set through the environment varialbe
+C<SKFOLD_HOME>.
+
+
+=head1 DEPENDENCIES
+
+Only pure-Perl modules (beyond CORE ones):
+
+=over
+
+=item * B<Log::Log4perl::Tiny>
+
+=item * B<Path::Tiny>
+
+=item * B<Template::Perlish>
+
+=back
+
+These three modules are embedded in the I<fatpacked> version.
+
+=head1 BUGS AND LIMITATIONS
+
+No bugs have been reported.
+
+Please report any bugs or feature requests through the repository.
+
+
+=head1 AUTHOR
+
+Flavio Poletti C<polettix@cpan.org>.
+
+Embedded code from the I<fatpacked> modules are by the respective authors.
+
+
+=head1 LICENCE AND COPYRIGHT
+
+Copyright 2020 by Flavio Poletti
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+In the I<fatpacked> version, code from the following modules is embedded:
+
+=over
+
+=item *
+
+B<Log::Log4perl::Tiny>, copyrighted by Flavio Poletti under the
+Artistic 2 license. See L<https://metacpan.org/pod/Log::Log4perl::Tiny>.
+
+=item *
+
+B<Path::Tiny>, copyrighted by David Golden under the Apache License,
+Version 2.0. See L<https://metacpan.org/pod/Path::Tiny>.
+
+=item *
+
+B<Template::Perlish>, copyrighted by Flavio Poletti under the Artistic
+2 license. See L<https://metacpan.org/pod/Template::Perlish>.
+
+=back
+
+=head1 DEDICATION
+
+Dedicated to the loving memory of my mother.
+
+
+=cut
