@@ -190,6 +190,8 @@ sub get_module_configuration {
 
    my ($target, $module, @args) = @{$overall->{args}};
    LOGDIE 'no module provided' unless defined $module;
+
+   my $base_dir = path($overall->{base});
    my $module_dir = $base_dir->child(modules => $module);
    LOGDIE "invalid module $module" unless $module_dir->is_dir;
 
