@@ -1,5 +1,25 @@
 Easily mint up pretty much every new project, based on templates.
 
+# Hacking
+
+Use [Carton][] to install the modules using the `cpanfile`.
+
+```shell
+carton install --deployment
+```
+
+To regenerate the fat-packed version run:
+
+```shell
+bin/fat-pack
+```
+
+To regenerate the dibs image run:
+
+```shell
+dibs/ify
+```
+
 
 # COPYRIGHT & LICENSE
 
@@ -21,3 +41,5 @@ License 2.0 (see file `LICENSE` in the project's root directory):
 >  limitations under the License.
 >
 >  Dedicated to the loving memory of my mother.
+
+[Carton]: https://metacpan.org/pod/Carton
