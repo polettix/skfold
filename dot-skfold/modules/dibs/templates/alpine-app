@@ -26,7 +26,7 @@ logger: ['Stderr', 'log_level', 'info']
 variables:
    - &image_name       '[% image_name %]'[%
    if (defined $V->{registry}) { %]
-   - &registry         '[% registry      %]'
+   - &registry         '[% registry      %]' # common: 'docker.pkg.github.com', 'registry.gitlab.com'
    - &full_image_name  ['join', '/', *registry, *image_name]
 [% } else { %]
    - &full_image_name  *image_name
@@ -79,24 +79,7 @@ actions:
       - from: *base_image
       - add-normal-user
       - add-prerequisites
-      - main-business-logic
-      - name: do everything
-        user: root
-        pack: 'project:create.sh'
-        args:
-         - *username
-         - *groupname
-         - *appname
-         - *appdir
-         - *workdir
-         - *version
-        commit:
-           entrypoint: ['/suexec',
-                           '-r', *workdir, '-u', *username, '-g', *username, '--']
-           cmd:        ['/bin/sh', '-l']
-           # cmd:        [*apppath]
-           user:       root
-           workdir:    *workdir
+      - main-creation-logic
       - name: save image
         image_name: *full_image_name
         tags: *version_tags
@@ -116,12 +99,28 @@ actions:
       args:
          - --suexec
          - --profilexec
+         - su-exec
          # add other packages, one per array item
 
    main-creation-logic:
       - name: do everything
         user: root
-        pack: 'project:create.sh'
+        pack:
+           run: |
+              #!/bin/sh
+              exec >&2
+              set -eu
+              username="$1"
+              groupname="$2"
+              appname="$3"
+              appdir="$4"
+              workdir="$5"
+              version="$6"
+              srcdir="$(cat DIBS_DIR_SRC)"
+              mkdir -p "$appdir"
+              cp "$srcdir/$appname" "$appdir"  # copy a single executable
+              chmod a+x "$appdir/$appname"
+              chown -R "$username:$groupname" "$appdir"
         args:
          - *username
          - *groupname
@@ -133,7 +132,7 @@ actions:
            author: [% author %]
            entrypoint: [
                '/suexec',
-                  '-r', *workdir, '-u', *username, '-g', *username, '--'
+                  '-r', *workdir, '-u', *username, '-g', *username, '--',
                '/profilexec'   
             ]
            cmd:        [*apppath]
