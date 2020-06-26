@@ -8,7 +8,7 @@ srcdir="$workdir/src"
 rm -rf "$srcdir"
 mkdir -p "$srcdir"
 cp -a "$md/../dot-skfold" "$srcdir/.skfold"
-"$md"/fat-pack "$srcdir/skf"
+"$md"/../bin/fat-pack "$srcdir/skf"
 
 cd "$workdir"
 dibs -A
