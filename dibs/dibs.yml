@@ -1,0 +1,84 @@
+---
+# Mint everything
+
+name: polettix/skfold/skf
+logger: ['Stderr', 'log_level', 'info']
+
+variables:
+   - &image_name       'polettix/skfold/skf'
+   - &registry         'docker.pkg.github.com'
+   - &full_image_name  ['join', '/', *registry, *image_name]
+
+   - &version_major   0
+   - &version_minor   1
+   - &version_patch   0
+   - &version         ['join', '.', *version_major, *version_minor, *version_patch]
+   - &version_maj_min ['join', '.', *version_major, *version_minor]
+   - &author 'Flavio Poletti (flavio@polettix.it)'
+
+   - &base_image          'alpine:3.11' 
+
+   - unexpanded:
+      tags: &version_tags ['*', 'latest', *version_maj_min, *version]
+
+   - &username             'urist'
+   - &groupname            'urist'
+
+   - &appdir   '/app'
+   - &appname  'skf'
+   - &wrappath ['join', '/', *appdir, 'docker-wrapper-inside.sh']
+   - &workdir  '/mnt'
+
+packs:
+   basic:
+      type:   git
+      origin: https://github.com/polettix/dibspack-basic.git
+
+actions:
+   default: build
+         
+   build:
+      - from: *base_image
+      - add-normal-user
+      - add-prerequisites
+      - main-creation-logic
+      - name: save image
+        image_name: *full_image_name
+        tags: *version_tags
+
+   add-normal-user:
+      name: add a regular, unprivileged user
+      pack: basic
+      user: root
+      path: wrapexec/suexec
+      args: ['-u', *username, '-g', *groupname, '-h', *appdir]
+
+   add-prerequisites:
+      name: add pre-requisite packages for Alpine
+      pack: basic
+      user: root
+      path: package/apk
+      args:
+         - --suexec
+         - --profilexec
+         - su-exec
+         - perl
+
+   main-creation-logic:
+      - name: do everything
+        user: root
+        pack: 'project:create.sh'
+        args:
+         - *username
+         - *groupname
+         - *appdir
+        commit:
+           author: Flavio Poletti
+           entrypoint: [
+               '/suexec',
+                  '-r', *workdir, '-u', *username, '-g', *username, '--',
+               '/profilexec', *wrappath
+            ]
+           cmd:        []
+           user:       root
+           workdir:    *workdir
