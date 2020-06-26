@@ -4,12 +4,21 @@ md="$(dirname "$me")"
 export PERL5LIB="$(readlink -f "$md/../local/lib/perl5")"
 fp="$md/../local/bin/fatpack"
 
-"$fp" file "$md/skf" > "$md/../skf" $(
-   "$fp" tree $(
-      "$fp" packlists-for $(
-         "$fp" trace --to=- "$md/skf"
+generate() {
+   "$fp" file "$md/skf" $(
+      "$fp" tree $(
+         "$fp" packlists-for $(
+            "$fp" trace --to=- "$md/skf"
+         )
       )
    )
-)
-chmod +x "$md/../skf"
+}
+
+if [ $# -gt 0 -a "$1" = "-" ] ; then
+   generate
+else
+   file="${1:-"$md/../skf"}"
+   generate >"$file"
+   chmod +x "$file"
+fi
 rm -rf "$md/../fatlib"
