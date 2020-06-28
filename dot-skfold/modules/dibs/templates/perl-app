@@ -38,7 +38,7 @@ variables:
    - &version_maj_min ['join', '.', *version_major, *version_minor]
    - &author '[% author %] ([% email %])'
 
-   - &base_image          '[% base %]' 
+   - &base_image          '[% base %]'
    - &builder_image_name  '[% image_name %]-builder'
    - &bundler_image_name  '[% image_name %]-bundler'
    - &bases_reference_tag '[% version_maj %].[% version_min %]'
