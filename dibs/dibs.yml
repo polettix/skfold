@@ -9,14 +9,15 @@ variables:
    - &registry         'docker.pkg.github.com'
    - &full_image_name  ['join', '/', *registry, *image_name]
 
+   - &builder_base 'docker.pkg.github.com/polettix/perldi/builder:3.11'
+   - &bundler_base 'docker.pkg.github.com/polettix/perldi/bundler:3.11'
+
    - &version_major   0
-   - &version_minor   1
+   - &version_minor   2
    - &version_patch   0
    - &version         ['join', '.', *version_major, *version_minor, *version_patch]
    - &version_maj_min ['join', '.', *version_major, *version_minor]
    - &author 'Flavio Poletti (flavio@polettix.it)'
-
-   - &base_image          'alpine:3.11' 
 
    - unexpanded:
       tags: &version_tags ['*', 'latest', *version_maj_min, *version]
@@ -24,6 +25,8 @@ variables:
    - &username             'urist'
    - &groupname            'urist'
 
+   - &appsrc   {path_src: '.'}
+   - &appcache {path_cache: 'perl-app'}
    - &appdir   '/app'
    - &appname  'skf'
    - &wrappath ['join', '/', *appdir, 'docker-wrapper-inside.sh']
@@ -35,16 +38,56 @@ packs:
       origin: https://github.com/polettix/dibspack-basic.git
 
 actions:
-   default: build
+   default: [build, bundle]
          
    build:
-      - from: *base_image
+      - from: *builder_base
       - add-normal-user
-      - add-prerequisites
-      - main-creation-logic
-      - name: save image
-        image_name: *full_image_name
-        tags: *version_tags
+      - pack: basic
+        path: perl/build
+        user: *username
+      - name: generate fatpacked version, to save space
+        user: *username
+        pack:
+           run: |
+              #!/bin/sh
+              exec >&2
+              set -eu
+              user="$1"
+              group="$2"
+              src_dir="$(cat DIBS_DIR_SRC)"
+              cd "$src_dir"
+              PERL5LIB="$PWD/local/lib/perl5" bin/fat-pack skf
+              chown "$user:$group" skf
+              chmod +x skf
+        args:
+           - *username
+           - *groupname
+      - name: copy main artifacts in cache
+        pack: basic
+        path: install/with-dibsignore
+        args: ['--src', *appsrc,
+               '--dst', *appcache]
+      - name: copy wrappers in cache, final touches
+        pack:
+           run: |
+              #!/bin/sh
+              exec >&2
+              set -eu
+              user="$1"
+              group="$2"
+              target_dir="$3"
+              wrappers_dir="$(cat DIBS_DIR_PACK)"
+              cp "$wrappers_dir"/docker-wrapper-*.sh "$target_dir"
+              cd "$target_dir"
+              chown "$user:$group" docker-wrapper-*.sh
+              chmod +x docker-wrapper-*.sh
+              mv dot-skfold .skfold
+              rmdir bin dibs local .git
+        args:
+           - *username
+           - *groupname
+           - *appcache
 
    add-normal-user:
       name: add a regular, unprivileged user
@@ -53,25 +96,14 @@ actions:
       path: wrapexec/suexec
       args: ['-u', *username, '-g', *groupname, '-h', *appdir]
 
-   add-prerequisites:
-      name: add pre-requisite packages for Alpine
-      pack: basic
-      user: root
-      path: package/apk
-      args:
-         - --suexec
-         - --profilexec
-         - su-exec
-         - perl
-
-   main-creation-logic:
-      - name: do everything
+   bundle:
+      - from: *bundler_base
+      - add-normal-user
+      - name: move artifacts in place
+        pack: basic
+        path: install/plain-copy
+        args: [*appcache, *appdir]
         user: root
-        pack: 'project:create.sh'
-        args:
-         - *username
-         - *groupname
-         - *appdir
         commit:
            author: Flavio Poletti
            entrypoint: [
@@ -82,3 +114,5 @@ actions:
            cmd:        []
            user:       root
            workdir:    *workdir
+      - image_name: *full_image_name
+        tags: ['*', 'latest', *version_maj_min, *version]

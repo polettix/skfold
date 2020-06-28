@@ -1,0 +1,9 @@
+/.git/
+/cpanfile*
+/DESIGN.md
+/dibs/
+/bin/
+/local/
+/skf/
+.dibsignore
+.gitignore
