@@ -1,6 +1,8 @@
 {
-   "abstract": "[Put something meaningful here!]",
-   "author": "Flavio Poletti",
-   "email": "flavio@polettix.it",
-   "year": "[%= (localtime)[5] + 1900 %]"
+   "": {
+      "abstract": "[Put something meaningful here!]",
+      "author": "A. U. Thor",
+      "email": "foobar@example.com",
+      "year": "[%= (localtime)[5] + 1900 %]"
+   }
 }
