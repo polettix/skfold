@@ -38,7 +38,7 @@ populate `~/.skfold` by yourself, e.g. taking inspiration from
 A [Docker][] image is available in GitHub.
 
 First of all, you have to ensure you are logged in GitHub with the
-`docker` command line tool. If you are not, follow the instracutions in
+`docker` command line tool. If you are not, follow the instructions in
 [Authenticating to GitHub Container Registry][authenticate]; this will
 be needed only once.
 
@@ -50,8 +50,8 @@ docker run --rm "$SKF_IMAGE" --wrapper 2>/dev/null
 ```
 
 The command above prints out a wrapper shell function that you can e.g.
-add to your `~/.bashrc` or `~/.profile`, or just install in the current
-shell like this:
+add to your `~/.bashrc` or `~/.profile`, or just add to the environment
+in the current shell session like this:
 
 ```shell
 eval "$(docker run --rm "$SKF_IMAGE" --wrapper 2>/dev/null)"
