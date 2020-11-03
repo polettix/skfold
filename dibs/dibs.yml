@@ -96,9 +96,18 @@ actions:
       path: wrapexec/suexec
       args: ['-u', *username, '-g', *groupname, '-h', *appdir]
 
+   install-prereqs:
+      name: install pre-requisites
+      pack: basic
+      user: root
+      path: package/apk
+
    bundle:
       - from: *bundler_base
       - add-normal-user
+      - extends: install-prereqs
+        args:
+           - git
       - name: move artifacts in place
         pack: basic
         path: install/plain-copy
