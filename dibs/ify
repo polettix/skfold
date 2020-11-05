@@ -1,14 +1,7 @@
 #!/bin/sh
 set -eu
-
 me="$(readlink -f "$0")"
 md="$(dirname "$me")"
-workdir="$md/../dibs"
-srcdir="$workdir/src"
-rm -rf "$srcdir"
-mkdir -p "$srcdir"
-cp -a "$md/../dot-skfold" "$srcdir/.skfold"
-"$md"/../bin/fat-pack "$srcdir/skf"
-
-cd "$workdir"
-dibs -A
+rd="$(dirname "$md")"
+cd "$rd"
+dibs "$@"

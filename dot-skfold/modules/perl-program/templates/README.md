@@ -1,4 +1,6 @@
-[% abstract %]
+# [% target %]
+
+[% target %] - [% abstract %]
 
 
 # COPYRIGHT & LICENSE

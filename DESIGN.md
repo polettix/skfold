@@ -113,6 +113,13 @@ Available modules:
   return a reference to a function. This function is called with `$config`
   as parameter, to perform post-operations that might be needed.
 
+# Packing
+
+Packing - fat-packing, actually - is done within the [Docker][] image. This
+allows leveraging [Docker][] for what it does best - keeping prerequisites in a
+tight space.
+
+
 [Docker]: https://www.docker.com/
 [Perl]: https://www.perl.org/
 [Template::Perlish]: https://metacpan.org/pod/Template::Perlish

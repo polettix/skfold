@@ -118,7 +118,7 @@ L<>.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright [% year %] by [% author %] ([% email %]).
+Copyright [% year %] by [% author %] C<[% email %]>.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

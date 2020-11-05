@@ -13,7 +13,7 @@ variables:
    - &bundler_base 'docker.pkg.github.com/polettix/perldi/bundler:3.11'
 
    - &version_major   0
-   - &version_minor   2
+   - &version_minor   3
    - &version_patch   0
    - &version         ['join', '.', *version_major, *version_minor, *version_patch]
    - &version_maj_min ['join', '.', *version_major, *version_minor]
