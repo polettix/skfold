@@ -22,7 +22,7 @@ Log::Log4perl->easy_init(
 );
 
 my $overall = get_overall_options(@ARGV);
-module_help($overall->{help_on}) if $overall->{help_on};
+module_help($overall->{help}) if $overall->{help};
 list_modules($overall) unless scalar @{$overall->{args}};
 
 LOGLEVEL($overall->{loglevel});
@@ -262,9 +262,9 @@ sub load_defaults {
 
 sub list_modules {
    my $overall = shift;
+   _pod2usage(-exitval => 'NOEXIT');
 
-   print {*STDERR} "# skf version $VERSION - more info with\n";
-   print {*STDERR} "# skf --usage|--help|--man\n";
+   print {*STDERR} "\n";
    print {*STDERR} "# Available modules:\n";
 
    $|++;
@@ -273,7 +273,7 @@ sub list_modules {
       next
         unless $candidate->is_dir
         && $candidate->child('config.json')->exists;
-      print {*STDOUT} $candidate->basename, "\n";
+      print {*STDOUT} '- ', $candidate->basename, "\n";
    } ## end for my $candidate ($modules_dir...)
 
    exit 0;
@@ -284,6 +284,7 @@ sub module_help {
    _pod2usage(-exitval => 1, -message => 'no module name to get help')
      unless defined $module;
 
+   die "module-specific help is still not implemented... :(\n";
    ...;
 } ## end sub module_help
 
@@ -296,17 +297,18 @@ sub get_overall_options {
    GetOptionsFromArray(
       \@args, \%config,
       qw<
-        help! man! usage! version!
+        man! usage! version!
 
         base|b=s
-        help_on|help-on|h=s
+        help|h:s
         loglevel|l=s
         quiet|q!
         >
    ) or _pod2usage(-exitval => 1);
    _pod2usage(-message => $VERSION, -sections => ' ') if $config{version};
    _pod2usage() if $config{usage};
-   _pod2usage(-sections => 'USAGE|EXAMPLES|OPTIONS') if $config{help};
+   _pod2usage(-sections => 'USAGE|EXAMPLES|OPTIONS')
+      if defined($config{help}) && length($config{help}) == 0;
    _pod2usage(-verbose => 2) if $config{man};
    $config{args} = \@args;
    $config{loglevel} = 'OFF' if $config{quiet};
@@ -340,11 +342,18 @@ Ask the version number to the script itself, calling:
 
 =head1 USAGE
 
-   skf [--usage] [--help] [--man] [--version]
+   # usage and list of available modules
+   skf
 
-   skf --help-on <module>
-   skf -h        <module>
+   # usage/help/version
+   skf [--usage] [--man] [--version]
 
+   # help on skf or on specific module, depending on presence of <module>
+   skf --help
+   skf --help <module>
+   skf -h     <module>
+
+   # actual run of skf - the target comes before the module and its options
    skf [-b|--base <dir>]
        [-l|--loglevel <level>]
        [-q|--quiet]
