@@ -102,7 +102,7 @@ sub load_custom_module {
    my $perl_module_file = $dir->child('custom.pm');
    if (-e $perl_module_file) {
       INFO "loading custom Perl module from '$perl_module_file'";
-      require $perl_module_file;
+      require $perl_module_file->absolute;
    }
 
    DEBUG 'ensuring all functions in SKFold::Custom are present';
