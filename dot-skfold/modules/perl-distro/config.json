@@ -53,6 +53,14 @@
          "destination": "Changes"
       },
       {
+         "destination": "t",
+         "mode": "a=rx,u+w"
+      },
+      {
+         "source": "00-load.t",
+         "destination": "t/00-load.t"
+      },
+      {
          "destination": "support",
          "mode": "a=rx,u+w"
       },
