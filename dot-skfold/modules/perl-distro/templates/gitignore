@@ -3,5 +3,5 @@
 /tmp/
 /dibs/
 /.build/
-/[% distro-name %]-*.tar.gz
-/[% distro-name %]-*/
+/[% distro_name %]-*.tar.gz
+/[% distro_name %]-*/
