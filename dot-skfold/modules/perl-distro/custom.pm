@@ -9,8 +9,11 @@ sub adapt_module_configuration {
    my $tdir = path($config->{target_dir});
    $config->{target_dir} =~ s{::}{-}gmxs;
 
-   my (%directories, %modules);
-   for my $module ($config->{target}, @{$config->{args}}) {
+   my $main_module = $config->{target};
+   my @other_modules = @{$config->{args}};
+
+   my (%directories, %modules, %pods);
+   for my $module ($main_module, @other_modules) {
       next if exists $modules{$module};
       (my $path = "lib/$module.pm") =~ s{::}{/}gmxs;
       my $dir = path($path)->parent;
@@ -19,37 +22,65 @@ sub adapt_module_configuration {
          $dir = $dir->parent;
       }
       $modules{$path} = $module;
+      $path =~ s{\.pm$}{.pod}mxs;
+      $pods{$path} = $module;
    }
 
-   my @files = map {
-      if ($_->{destination} eq '*') {
-         my %model = %$_;
-         (
-            map({
-               {
-                  destination => $_,
-                  mode => $model{dmode},
-               }
-            } sort { length $a <=> length $b } keys %directories),
-            map({
-               {
-                  %model,
-                  destination => $_,
-                  opts => {
-                     %{$model{opts} || {}},
-                     module => $modules{$_},
-                     filename => $_,
-                  },
-               }
-            } keys %modules)
-         );
+   my %common_options = (
+      distro_name => $config->{target_dir},
+      main_module => $main_module,
+      other_modules => \@other_modules,
+      all_modules => [$main_module, @other_modules],
+   );
+   my (@files, @directories);
+   for my $item (@{$config->{files}}) {
+      my %model = %$item;
+      if ($model{destination} eq '*module') {
+         push @directories, map {
+            {
+               destination => $_,
+               mode => $model{dmode},
+            }
+         } sort { length $a <=> length $b } keys %directories;
+         push @files, map{
+            {
+               %model,
+               destination => $_,
+               opts => {
+                  %{$model{opts} || {}},
+                  %common_options,
+                  module => $modules{$_},
+                  filename => $_,
+               },
+            }
+         } keys %modules;
+      }
+      elsif ($model{destination} eq '*pod') {
+         push @files, map{
+            {
+               %model,
+               destination => $_,
+               opts => {
+                  %{$model{opts} || {}},
+                  %common_options,
+                  module => $pods{$_},
+                  filename => $_,
+               },
+            }
+         } keys %pods;
       }
       else {
-         $_
+         $model{opts} = {%common_options, %{$model{opts} || {}}};
+         if (exists $model{source}) {
+            push @files, \%model;
+         }
+         else {
+            push @directories, \%model;
+         }
       };
-   } @{$config->{files}};
+   }
 
-   $config->{files} = \@files;
+   $config->{files} = [@directories, @files];
 };
 
 1;

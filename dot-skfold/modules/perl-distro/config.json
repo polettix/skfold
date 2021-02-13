@@ -15,12 +15,16 @@
       {
          "mandatory": false,
          "getopt": "version|v=s",
-         "default": "0.1"
+         "default": "0.001"
       },
       {
          "mandatory": true,
          "getopt": "year|y=i",
          "default": "[%= (localtime)[5] + 1900 %]"
+      },
+      {
+         "mandatory": true,
+         "getopt": "github|github-name|G=s"
       }
    ],
    "files": [
@@ -33,12 +37,62 @@
          "destination": "README.md"
       },
       {
+         "source": "cpanfile",
+         "destination": "cpanfile"
+      },
+      {
          "source": "gitignore",
          "destination": ".gitignore"
       },
       {
+         "source": "dist.ini",
+         "destination": "dist.ini"
+      },
+      {
+         "source": "Changes",
+         "destination": "Changes"
+      },
+      {
+         "destination": "support",
+         "mode": "a=rx,u+w"
+      },
+      {
+         "source": "podversion.pl",
+         "destination": "support/podversion.pl",
+         "mode": "a=rx,u+w"
+      },
+      {
+         "destination": "xt",
+         "mode": "a=rx,u+w"
+      },
+      {
+         "destination": "xt/author",
+         "mode": "a=rx,u+w"
+      },
+      {
+         "source": "xt-pod-version.t",
+         "destination": "xt/author/pod-version.t",
+         "mode": "a=r,u+w",
+         "dmode": "a=rx,u+w"
+      },
+      {
+         "destination": "xt/release",
+         "mode": "a=rx,u+w"
+      },
+      {
+         "source": "xt-pod-coverage.t",
+         "destination": "xt/release/pod-coverage.t",
+         "mode": "a=r,u+w",
+         "dmode": "a=rx,u+w"
+      },
+      {
+         "source": "module.pod",
+         "destination": "*pod",
+         "mode": "a=r,u+w"
+      },
+      {
          "source": "module.pm",
-         "destination": "*",
+         "destination": "*module",
          "mode": "a=r,u+w",
          "dmode": "a=rx,u+w"
       }
