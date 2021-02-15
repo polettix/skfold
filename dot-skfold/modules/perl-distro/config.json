@@ -45,6 +45,10 @@
          "destination": ".gitignore"
       },
       {
+         "source": "travis.yml",
+         "destination": ".travis.yml"
+      },
+      {
          "source": "dist.ini",
          "destination": "dist.ini"
       },
