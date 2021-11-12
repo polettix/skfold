@@ -15,30 +15,31 @@ my $config = get_options(
    [
       'example|e!',
       {
-         optnames => 'what|ever|e=s'.
+         getopt => 'what|ever|e=s'.
          default => 'yadda yadda yadda',
          environment => 'WHATEVER_x',
       }
    ],
-   [@ARGV],
+   @ARGV,
 );
 
-sub get_options ($specs, $ARGV) {
+sub get_options ($specs, @args) {
    my (%cmdline, %environment, %default);
    my @cmdline_options = qw< help! man! usage! version! >;
    for my $spec ($specs->@*) {
       my ($optnames, $default, $env_var) =
         ref $spec
-        ? $spec->{qw< optnames default environment >}
+        ? $spec->{qw< getopt default environment >}
         : ($spec, undef, undef);
       push @cmdline_options, $optnames;
       my $name = $optnames =~ s{[^\w-].*}{}mxs;
       $default{$name}     = $default       if defined $default;
-      $environment{$name} = $ENV{$env_var} if defined $env_var;
+      $environment{$name} = $ENV{$env_var}
+         if defined $env_var && exists $ENV{$env_var};
    } ## end for my $spec ($specs->@*)
 
    my %cmdline;
-   GetOptionsFromArray($ARGV, \%cmdline, @cmdline_options)
+   GetOptionsFromArray(\@args, \%cmdline, @cmdline_options)
      or pod2usage(-verbose => 99, -sections => 'USAGE');
 
    pod2usage(message => "$0 $VERSION", -verbose => 99, -sections => ' ')
@@ -48,7 +49,7 @@ sub get_options ($specs, $ARGV) {
      if $cmdline{help};
    pod2usage(-verbose => 2) if $cmdline{man};
 
-   return {%default, %environment, %cmdline};
+   bless {%default, %environment, %cmdline, _args => \@args}, __PACKAGE__;
 } ## end sub get_options
 
 __END__
