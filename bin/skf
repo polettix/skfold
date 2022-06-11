@@ -190,7 +190,7 @@ sub ancestors_for {
 sub get_module_configuration {
    my $overall = shift;
 
-   my ($target, $module, @args) = @{$overall->{args}};
+   my ($module, $target, @args) = @{$overall->{args}};
    LOGDIE 'no module provided' unless defined $module;
 
    my $base_dir = path($overall->{base});
@@ -357,7 +357,7 @@ Ask the version number to the script itself, calling:
    skf [-b|--base <dir>]
        [-l|--loglevel <level>]
        [-q|--quiet]
-       <target> <module> [<module options...>]
+       <module> <target> [<module options...>]
 
 =head1 EXAMPLES
 
@@ -369,7 +369,7 @@ Ask the version number to the script itself, calling:
 
    # invoke skf to generate a Perl distro for module What::Ever
    # and some sub-modules
-   $ skf What::Ever perl-distro \
+   $ skf perl-distro What::Ever \
       --abstract 'Whatever!' \
       --author 'A. U. Thor'  \
       --email 'foobar@example.com' \
@@ -417,11 +417,11 @@ the module's name:
 Modules that are aimed at kickstarting a complete project (e.g.
 `perl-distro`) are invoked like this:
 
-   skf <target> <module> [<module options...>]
+   skf <module> <target> [<module options...>]
 
 As an example:
 
-   $ skf What::Ever perl-distro \
+   $ skf perl-distro What::Ever \
       --abstract 'Whatever!' \
       --author 'A. U. Thor'  \
       --email 'foobar@example.com' \
@@ -440,7 +440,7 @@ what is supported.
 Some modules are geared at producing single files (e.g. the C<dibs>
 module). The invocation is the same as before though:
 
-   $ skf <target> <module> [<module options...>]
+   $ skf <module> <target> [<module options...>]
 
 only the I<target> usually defines the output filename, and can be set
 to C<-> as a convention to specify printing on the standard output (this
