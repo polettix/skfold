@@ -5,12 +5,14 @@
 # Then create commands naming functions COMMAND_<name> and marking them
 # with #<C>. Add command's documentation with #<CH>. See examples below,
 # then remove this comment if you wish.
+#
+# Use @@@ in #<H> and #<CH> to expand to the image name.
 
 #<H>
 #<H> [% abstract %]
-#<h> Copyright (C) [% year %] by [% author %] <[% email %]>
+#<H> Copyright (C) [% year %] by [% author %] <[% email %]>
 #<H>
-#<H> This docker image...
+#<H> This docker image @@@...
 #<H>
 #<H> - does this;
 #<H> - does that.
@@ -29,7 +31,41 @@ COMMAND_foo() { #<C>
    printf '%s\n' 'Go with the foo!'
 }
 
-# Hint: leave this COMMAND_help function, it provides a free help message
+COMMAND_cat_archive() { #<C>
+#<CH> usage:  cat-archive <archive-name>
+#<CH>
+#<CH> print the selected archive in standard output. Use list-archives to
+#<CH> get a list of the available ones.
+   local name="${1:-""}"
+   local filename="archives/$name.tar.gz"
+   if ! [ -f "$filename" ] ; then
+      COMMAND_list_archives
+      LOGDIE "unknown archive '$name'"
+   fi
+   INFO "sending tar.gz archive for $name on standard output"
+   cat "$filename"
+}
+
+COMMAND_commands() { #<C>
+#<CH> usage:  commands
+#<CH>
+#<CH> Print a list of available commands
+   commands
+}
+
+COMMAND_docs() { #<C>
+#<CH> usage:  docs [<doc-name>]
+#<CH>
+#<CH> print some documentation item. When called standalone, it will
+#<CH> display a list of available documentation files; otherwise, it will
+#<CH> try to show the provided file identifer.
+   if [ $# -gt 0 ] ; then
+      docs_show "$1"
+   else
+      docs_list
+   fi
+}
+
 COMMAND_help() { #<C>
 #<CH> usage:  help
 #<CH>
@@ -37,8 +73,51 @@ COMMAND_help() { #<C>
    help
 }
 
+COMMAND_list_archives() { #<C>
+#<CH> usage:  list-archives
+#<CH>
+#<CH> list all available archives
+   printf '%s\n' 'Available archives:'
+   ls archives/*.tar.gz | sed 's#^archives/#- #;s/\.tar.gz$//'
+}
+
+# Hint: leave this COMMAND_shell function, it provides a handy entry point
+COMMAND_shell() { #<C>
+#<CH> usage:  shell
+#<CH>
+#<CH> Run a shell
+   exec /bin/sh -l
+}
+
+COMMAND_wrapper() { #<C>
+#<CH> usage:  wrapper
+#<CH>
+#<CH> print out a shell command to ease calling the docker image
+#<CH>
+#<CH> IMAGE='@@@:latest' # or whatever it's called in the system
+#<CH> docker run --rm "$IMAGE" wrapper > command
+#<CH> chmod +x command
+#<CH> ./command ... # no more docker run.. needed
+   cat script/wrapper
+}
+
 ############################################################################
 # Main function, makes sure only stuff starting with COMMAND_ is run
+
+_docs_list() {
+   cat docs/text/list
+}
+
+_docs_show() {
+   local id="$1"
+   local filename="$(
+      ls docs/text/* | grep '^docs/text/0*'"$id"'\(\..\+\)\?\.txt$')"
+   if [ ! -r "$filename" ] ; then
+      _docs_list
+      LOGDIE "missing required document id $id"
+   fi
+   cat "$filename"
+}
 
 main() {
    local command="${1:-"help"}"
@@ -91,12 +170,22 @@ commands() { #<command>
 help() { #<command>
 #<help> usage: help
 #<help> print help for all available commands
+   local image
+   image="$(printf '%s' "$DIBS_IMAGE" | sed -e 's#/#\\/#g')"
    {
       sed -ne '
+         /^#<H>/{
+            s/^#<H> \?//
+         '" s/@@@/$image/g  "'
+            p
+         }
          /#<C> *$/{s/COMMAND_\([a-zA-Z0-9_]*\).*/\n- \1/;s/_/-/g;p}
-         s/^#<H> \?//p
-         s/^#<CH> /    /p
-         s/^#<CH>//p
+         /^#<CH>/{
+            s/^#<CH>//
+            s/^ /    /
+         '" s/@@@/$image/ "'
+            p
+         }
       ' "$0"
    } >&2
 }

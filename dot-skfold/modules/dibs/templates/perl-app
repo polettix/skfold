@@ -47,17 +47,17 @@ variables:
 
    - unexpanded:
       tags: &version_tags ['*', 'latest', *version_maj_min, *version]
-     prerequsites:
-      - &build_prereqs_list
-         - build-base
-         - perl
-         - perl-dev
-         # add other modules for the "build" phase
+      prerequisites:
+         - &build_prereqs_list
+            - build-base
+            - perl
+            - perl-dev
+            # add other modules for the "build" phase
 
-      - &bundle_prereqs_list
-         - --suexec
-         - --profilexec
-         - perl
+         - &bundle_prereqs_list
+            - --suexec
+            - --profilexec
+            - perl
 
    - &username             'urist'
    - &groupname            'urist'
