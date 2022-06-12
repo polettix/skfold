@@ -11,7 +11,7 @@ use Path::Tiny 'path';
 use Template::Perlish ();
 use Data::Dumper;
 
-my $VERSION = '0.1.0';
+my $VERSION = '0.5.0';
 
 Log::Log4perl->easy_init(
    {
@@ -341,6 +341,9 @@ Ask the version number to the script itself, calling:
 
 
 =head1 USAGE
+
+B<NOTE>: as of version C<0.5>, the order of the first two parameters is
+reversed.
 
    # usage and list of available modules
    skf
